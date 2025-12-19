@@ -25,6 +25,19 @@ incus exec id-01 -- sed -i 's|./incus.nix|./incus.nix\n    ./idempiere-prerequis
 # Rebuild NixOS (takes 1-2 minutes on first run)
 # NOTE FOR CLAUDE: Use run_in_background=true for this command to preserve context
 incus exec id-01 -- sudo nixos-rebuild switch
+
+# Edit passwords before running Ansible!
+incus exec id-01 -- nano /root/ansible/vars/idempiere.yml
+
+# Run Ansible playbook (downloads ~500MB, takes several minutes)
+incus exec id-01 -- bash -c "cd /root/ansible && ansible-playbook -i inventory.ini idempiere-install.yml -e 'import_database=true' --connection=local"
+
+# Add service import and rebuild to enable systemd service
+incus exec id-01 -- sed -i 's|./idempiere-prerequisites.nix|./idempiere-prerequisites.nix\n    ./idempiere-service.nix|' /etc/nixos/configuration.nix
+incus exec id-01 -- sudo nixos-rebuild switch
+
+# Check service status
+incus exec id-01 -- systemctl status idempiere
 ```
 
 ## Architecture
