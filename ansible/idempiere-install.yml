@@ -241,6 +241,29 @@
       failed_when: false  # May not exist on all platforms
 
     #########################################################################
+    # Install REST API Plugin
+    # https://github.com/bxservice/idempiere-rest
+    # https://bxservice.github.io/idempiere-rest-docs/
+    #########################################################################
+    - name: Install REST API plugin
+      become_user: "{{ idempiere_user }}"
+      ansible.builtin.command:
+        cmd: bash update-prd.sh {{ rest_plugin_p2_url }} {{ rest_plugin_feature }}
+        chdir: "{{ idempiere_install_dir }}"
+      environment:
+        JAVA_HOME: "{{ java_home }}"
+        IDEMPIERE_HOME: "{{ idempiere_install_dir }}"
+      when: install_rest_plugin | default(true) | bool
+      register: rest_plugin_result
+
+    - name: Display REST plugin installation output
+      ansible.builtin.debug:
+        msg: "{{ rest_plugin_result.stdout_lines }}"
+      when:
+        - install_rest_plugin | default(true) | bool
+        - rest_plugin_result.stdout_lines is defined
+
+    #########################################################################
     # Verify Installation
     #########################################################################
     - name: Verify database connection
@@ -282,7 +305,11 @@
           - "     sudo nixos-rebuild switch"
           - ""
           - "  3. Access iDempiere at:"
-          - "     http://{{ ansible_host }}:{{ idempiere_web_port }}/webui/"
+          - "     Web UI: http://{{ ansible_host }}:{{ idempiere_web_port }}/webui/"
+          - "     REST API: http://{{ ansible_host }}:{{ idempiere_web_port }}/api/v1/"
           - ""
           - "  4. Default login: GardenAdmin / GardenAdmin"
+          - ""
+          - "  5. REST API Documentation:"
+          - "     https://bxservice.github.io/idempiere-rest-docs/"
           - "=============================================="

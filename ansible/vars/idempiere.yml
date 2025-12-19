@@ -49,6 +49,16 @@ db_password: "adempiere"  # CHANGE THIS!
 java_home: "/run/current-system/sw"
 
 #############################################################################
+# REST API Plugin Configuration
+#############################################################################
+# Install REST API plugin by default
+install_rest_plugin: true
+
+# REST plugin p2 repository URL (Jenkins daily build)
+rest_plugin_p2_url: "https://jenkins.idempiere.org/job/idempiere-rest/ws/com.trekglobal.idempiere.extensions.p2/target/repository/"
+rest_plugin_feature: "com.trekglobal.idempiere.rest.api"
+
+#############################################################################
 # Mail Configuration (optional)
 #############################################################################
 mail_host: "localhost"

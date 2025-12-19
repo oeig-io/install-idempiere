@@ -1,6 +1,6 @@
 # iDempiere on NixOS
 
-Simple iDempiere ERP installation using NixOS for system configuration and Ansible for orchestration.
+Simple iDempiere ERP installation using NixOS for system configuration and Ansible for orchestration. Includes the [REST API plugin](https://github.com/bxservice/idempiere-rest) by default (see [REST API docs](https://bxservice.github.io/idempiere-rest-docs/)).
 
 Based on the official guide: https://wiki.idempiere.org/en/Installing_iDempiere
 
@@ -44,11 +44,13 @@ incus config device add id-01 myproxy proxy listen=tcp:0.0.0.0:8081 connect=tcp:
 
 # Option A: Open firewall (if using UFW)
 sudo ufw allow 8081/tcp
-# Access at http://<server-ip>:8081/webui/
+# Access Web UI at http://<server-ip>:8081/webui/
+# Access REST API at http://<server-ip>:8081/api/v1/
 
 # Option B: SSH tunnel (no firewall changes needed)
 ssh -L 8081:localhost:8081 user@<server-ip>
-# Access at http://localhost:8081/webui/
+# Access Web UI at http://localhost:8081/webui/
+# Access REST API at http://localhost:8081/api/v1/
 ```
 
 ## Architecture
@@ -78,6 +80,7 @@ ssh -L 8081:localhost:8081 user@<server-ip>
 │  │  - Import database (RUN_ImportIdempiere.sh)                       │  │
 │  │  - Sync database (RUN_SyncDB.sh)                                  │  │
 │  │  - Sign database (sign-database-build-alt.sh)                     │  │
+│  │  - Install REST API plugin (update-prd.sh)                        │  │
 │  └───────────────────────────────────────────────────────────────────┘  │
 │                                 │                                        │
 │                                 ▼                                        │
@@ -114,6 +117,73 @@ The playbook uses a sed-style configuration approach (learned from studying the 
 4. Configures properties using Ansible's `lineinfile` module (sed-style)
 5. Runs `silent-setup-alt.sh` to generate keystore and Jetty configs
 6. Imports the seed database and applies migrations
+7. Installs the REST API plugin via `update-prd.sh`
+
+## REST API Examples
+
+After installation, the REST API is available at `http://<server>:8080/api/v1/`. See the [full documentation](https://bxservice.github.io/idempiere-rest-docs/) for details.
+
+### Authenticate and Get Token
+
+```bash
+# Get authentication token (valid for 1 hour)
+curl -X POST http://localhost:8080/api/v1/auth/tokens \
+  -H "Content-Type: application/json" \
+  -d '{"userName":"GardenAdmin","password":"GardenAdmin"}'
+
+# Response:
+# {"clients":[{"id":11,"name":"GardenWorld"}],"token":"eyJraWQiOi..."}
+```
+
+### Select Client and Get Session Token
+
+```bash
+# Use the token from above to select a client
+TOKEN="eyJraWQiOi..."
+
+curl -X PUT http://localhost:8080/api/v1/auth/tokens \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $TOKEN" \
+  -d '{"clientId":11,"roleId":102,"organizationId":0,"warehouseId":0}'
+
+# Response includes a new token for API calls
+```
+
+### Query Business Partners
+
+```bash
+curl -X GET "http://localhost:8080/api/v1/models/c_bpartner" \
+  -H "Authorization: Bearer $TOKEN"
+```
+
+### Query Products
+
+```bash
+curl -X GET "http://localhost:8080/api/v1/models/m_product" \
+  -H "Authorization: Bearer $TOKEN"
+```
+
+### Query with Filters
+
+```bash
+# Get active products with specific columns
+curl -X GET "http://localhost:8080/api/v1/models/m_product?\$filter=IsActive eq true&\$select=Name,Value,Description" \
+  -H "Authorization: Bearer $TOKEN"
+```
+
+### Create a Business Partner
+
+```bash
+curl -X POST http://localhost:8080/api/v1/models/c_bpartner \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $TOKEN" \
+  -d '{
+    "Name": "Test Partner",
+    "Value": "TEST001",
+    "IsCustomer": true,
+    "IsVendor": false
+  }'
+```
 
 ## Known Issues & Lessons Learned
 
@@ -208,3 +278,5 @@ This sed-based approach bypasses the Java silent installer's property file parsi
 - [Debian Installer](https://wiki.idempiere.org/en/IDempiere_Debian_Installer)
 - [NixOS Manual](https://nixos.org/manual/nixos/stable/)
 - [SourceForge Downloads](https://sourceforge.net/projects/idempiere/files/v12/daily-server/)
+- [REST API Plugin](https://github.com/bxservice/idempiere-rest)
+- [REST API Documentation](https://bxservice.github.io/idempiere-rest-docs/)
