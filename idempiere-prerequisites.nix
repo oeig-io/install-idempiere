@@ -25,8 +25,22 @@ let
   };
 
   db = {
+    name = "idempiere";
+    user = "adempiere";
+    password = "adempiere";
+    host = "localhost";
     port = 5432;
   };
+
+  # Wrapper script to connect to iDempiere database
+  psqli = pkgs.writeShellScriptBin "psqli" ''
+    PGPASSWORD="${db.password}" exec ${pkgs.postgresql_17}/bin/psql \
+      -h ${db.host} \
+      -p ${toString db.port} \
+      -U ${db.user} \
+      -d ${db.name} \
+      "$@"
+  '';
 
 in {
   #############################################################################
@@ -61,6 +75,9 @@ in {
 
     # Ansible for orchestration (run from this machine or control node)
     ansible
+
+    # Quick connect to iDempiere database (psqli)
+    psqli
   ];
 
   #############################################################################
