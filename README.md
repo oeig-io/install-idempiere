@@ -25,6 +25,25 @@ Note: the install can take up to 10 minutes.
 # REST API: http://<container-ip>:8080/api/v1/
 ```
 
+## Running Commands in the Container
+
+Commands like `psqli` and service management should be run as the `idempiere` user (which has the `.pgpass` credentials configured):
+
+```bash
+# Interactive shell as idempiere user
+incus exec id-01 -- su --login idempiere
+
+# Run a single command as idempiere user
+incus exec id-01 -- su --login idempiere -c "psqli"
+incus exec id-01 -- su --login idempiere -c "psqli -c 'SELECT * FROM ad_system'"
+
+# Check service status
+incus exec id-01 -- systemctl status idempiere
+
+# View logs
+incus exec id-01 -- journalctl -u idempiere -f
+```
+
 ## Architecture
 
 ```

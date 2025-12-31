@@ -72,6 +72,10 @@ curl -X POST http://localhost:8080/api/v1/auth/tokens \
 - Database role must be SUPERUSER for JDBC connection
 - Script name is `silent-setup-alt.sh` (not `silentsetup-alt.sh`)
 
+## Container Access
+
+See `README.md` for container deployment (incus), installation steps, and running commands as the `idempiere` user.
+
 ## Reference Documentation
 
 - iDempiere Wiki: https://wiki.idempiere.org/
