@@ -257,6 +257,104 @@
       failed_when: false  # May not exist on all platforms
 
     #########################################################################
+    # Vilara Integration Users
+    # Creates read-only and read-write users for Vilara container access
+    # Credentials appended to .pgpass as single source of truth
+    # See: planning/idempiere-vilara-connector.md
+    #########################################################################
+    - name: Generate password for idempiere_readonly user
+      ansible.builtin.shell: |
+        head -c 32 /dev/urandom | base64 | tr -dc 'a-zA-Z0-9' | head -c 32
+      register: readonly_password_result
+      changed_when: false
+      when: import_database | default(false) | bool
+
+    - name: Generate password for idempiere_readwrite user
+      ansible.builtin.shell: |
+        head -c 32 /dev/urandom | base64 | tr -dc 'a-zA-Z0-9' | head -c 32
+      register: readwrite_password_result
+      changed_when: false
+      when: import_database | default(false) | bool
+
+    - name: Set password facts
+      ansible.builtin.set_fact:
+        readonly_password: "{{ readonly_password_result.stdout }}"
+        readwrite_password: "{{ readwrite_password_result.stdout }}"
+      when: import_database | default(false) | bool
+
+    - name: Append idempiere_readonly credentials to .pgpass
+      ansible.builtin.lineinfile:
+        path: "/home/{{ idempiere_user }}/.pgpass"
+        line: "{{ db_host }}:{{ db_port }}:{{ db_name }}:idempiere_readonly:{{ readonly_password }}"
+        owner: "{{ idempiere_user }}"
+        group: "{{ idempiere_group }}"
+        mode: '0600'
+      when: import_database | default(false) | bool
+      no_log: true
+
+    - name: Append idempiere_readwrite credentials to .pgpass
+      ansible.builtin.lineinfile:
+        path: "/home/{{ idempiere_user }}/.pgpass"
+        line: "{{ db_host }}:{{ db_port }}:{{ db_name }}:idempiere_readwrite:{{ readwrite_password }}"
+        owner: "{{ idempiere_user }}"
+        group: "{{ idempiere_group }}"
+        mode: '0600'
+      when: import_database | default(false) | bool
+      no_log: true
+
+    - name: Create idempiere_readonly role
+      become_user: postgres
+      ansible.builtin.command:
+        cmd: psql -d {{ db_name }} -c "CREATE ROLE idempiere_readonly LOGIN PASSWORD '{{ readonly_password }}'"
+      when: import_database | default(false) | bool
+      register: create_readonly_role
+      changed_when: "'CREATE ROLE' in create_readonly_role.stdout"
+      failed_when: false
+      no_log: true
+
+    - name: Create idempiere_readwrite role
+      become_user: postgres
+      ansible.builtin.command:
+        cmd: psql -d {{ db_name }} -c "CREATE ROLE idempiere_readwrite LOGIN PASSWORD '{{ readwrite_password }}'"
+      when: import_database | default(false) | bool
+      register: create_readwrite_role
+      changed_when: "'CREATE ROLE' in create_readwrite_role.stdout"
+      failed_when: false
+      no_log: true
+
+    - name: Grant read-only permissions to idempiere_readonly
+      become_user: postgres
+      ansible.builtin.command:
+        cmd: psql -d {{ db_name }} -c "{{ item }}"
+      loop:
+        - "GRANT USAGE ON SCHEMA adempiere TO idempiere_readonly"
+        - "GRANT SELECT ON ALL TABLES IN SCHEMA adempiere TO idempiere_readonly"
+        - "ALTER DEFAULT PRIVILEGES IN SCHEMA adempiere GRANT SELECT ON TABLES TO idempiere_readonly"
+      when: import_database | default(false) | bool
+      failed_when: false
+
+    - name: Grant read-write permissions to idempiere_readwrite
+      become_user: postgres
+      ansible.builtin.command:
+        cmd: psql -d {{ db_name }} -c "{{ item }}"
+      loop:
+        - "GRANT USAGE ON SCHEMA adempiere TO idempiere_readwrite"
+        - "GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA adempiere TO idempiere_readwrite"
+        - "ALTER DEFAULT PRIVILEGES IN SCHEMA adempiere GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO idempiere_readwrite"
+        - "GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA adempiere TO idempiere_readwrite"
+        - "ALTER DEFAULT PRIVILEGES IN SCHEMA adempiere GRANT USAGE, SELECT ON SEQUENCES TO idempiere_readwrite"
+      when: import_database | default(false) | bool
+      failed_when: false
+
+    - name: Display Vilara integration users created
+      ansible.builtin.debug:
+        msg:
+          - "Vilara integration users created successfully"
+          - "Credentials stored in /home/{{ idempiere_user }}/.pgpass"
+          - "Users: idempiere_readonly, idempiere_readwrite"
+      when: import_database | default(false) | bool
+
+    #########################################################################
     # Install REST API Plugin
     # https://github.com/bxservice/idempiere-rest
     # https://bxservice.github.io/idempiere-rest-docs/
@@ -297,6 +395,71 @@
       when: import_database | default(false) | bool
       register: db_verify
       failed_when: db_verify.rc != 0
+
+    #########################################################################
+    # Vilara Remote Access (cross-container)
+    # Enabled by: VILARA_REMOTE_ACCESS=true -> vilara_remote_access=true
+    # Creates NixOS overlay module for remote PostgreSQL access
+    # See: planning/idempiere-vilara-connector.md
+    #########################################################################
+    - name: Get container IP address for remote access
+      ansible.builtin.shell: |
+        ip -4 addr show eth0 | grep -oP '(?<=inet\s)\d+(\.\d+){3}'
+      register: container_ip_result
+      changed_when: false
+      when: vilara_remote_access | default(false) | bool
+
+    - name: Set container IP fact
+      ansible.builtin.set_fact:
+        container_ip: "{{ container_ip_result.stdout }}"
+      when: vilara_remote_access | default(false) | bool
+
+    - name: Display remote access configuration
+      ansible.builtin.debug:
+        msg:
+          - "Configuring Vilara remote access..."
+          - "Container IP: {{ container_ip }}"
+      when: vilara_remote_access | default(false) | bool
+
+    - name: Deploy remote access NixOS overlay
+      ansible.builtin.template:
+        src: idempiere-remote-access.nix.j2
+        dest: "{{ playbook_dir }}/../idempiere-remote-access.nix"
+        mode: '0644'
+      when: vilara_remote_access | default(false) | bool
+
+    - name: Check if remote access already in configuration.nix
+      ansible.builtin.shell: |
+        grep -q "idempiere-remote-access.nix" /etc/nixos/configuration.nix
+      register: remote_access_check
+      failed_when: false
+      changed_when: false
+      when: vilara_remote_access | default(false) | bool
+
+    - name: Add remote access overlay to configuration.nix
+      ansible.builtin.lineinfile:
+        path: /etc/nixos/configuration.nix
+        insertafter: 'idempiere-prerequisites.nix'
+        line: "    {{ playbook_dir }}/../idempiere-remote-access.nix"
+      when:
+        - vilara_remote_access | default(false) | bool
+        - remote_access_check.rc != 0
+
+    - name: Rebuild NixOS with remote access configuration
+      ansible.builtin.command:
+        cmd: sudo nixos-rebuild switch
+      when:
+        - vilara_remote_access | default(false) | bool
+        - remote_access_check.rc != 0
+      register: rebuild_result
+
+    - name: Display remote access complete
+      ansible.builtin.debug:
+        msg:
+          - "Vilara remote access configured successfully"
+          - "PostgreSQL listening on: {{ container_ip }}:{{ db_port }}"
+          - "Credentials in: /home/{{ idempiere_user }}/.pgpass"
+      when: vilara_remote_access | default(false) | bool
 
     #########################################################################
     # Installation complete - next steps

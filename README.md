@@ -7,6 +7,10 @@ Based on the official guide: https://wiki.idempiere.org/en/Installing_iDempiere
 ## Quick Start
 
 ```bash
+# Clone the repository
+git clone https://github.com/vilara-ai/idempiere-third-party-deploy.git
+cd idempiere-third-party-deploy
+
 # Create NixOS container
 incus launch images:nixos/25.11 id-xx \
   -c security.nesting=true \
@@ -18,12 +22,26 @@ incus launch images:nixos/25.11 id-xx \
 incus file push -r . id-xx/opt/idempiere-install/
 incus exec id-xx -- /opt/idempiere-install/install.sh
 
-Note: the install can take up to 10 minutes.
+# Note: the install can take up to 10 minutes.
 
 # Access iDempiere
 # Web UI: http://<container-ip>:8080/webui/
 # REST API: http://<container-ip>:8080/api/v1/
 ```
+
+### With Vilara Remote Access
+
+For paired Vilara container deployments that need cross-container database access:
+
+```bash
+# Enable remote access during installation
+incus exec id-xx -- env VILARA_REMOTE_ACCESS=true /opt/idempiere-install/install.sh
+```
+
+This additionally:
+- Opens PostgreSQL port 5432 to the container network
+- Creates `idempiere_readonly` and `idempiere_readwrite` database users
+- Configures pg_hba.conf for container network access (10.0.0.0/8)
 
 ## Running Commands in the Container
 
@@ -91,12 +109,53 @@ incus exec id-xx -- journalctl -u idempiere -f
 ├── install.sh                       # Automated installer (runs all phases)
 ├── idempiere-prerequisites.nix      # Phase 1: System prerequisites
 ├── idempiere-service.nix            # Phase 2: systemd service (add after Ansible)
+├── idempiere-remote-access.nix      # Generated when VILARA_REMOTE_ACCESS=true
 ├── ansible/
 │   ├── idempiere-install.yml        # Main playbook
 │   ├── inventory.ini                # Ansible inventory
+│   ├── templates/
+│   │   └── idempiere-remote-access.nix.j2  # Remote access NixOS overlay
 │   └── vars/
 │       └── idempiere.yml            # Variables (DB password auto-generated)
 └── README.md
+```
+
+## Vilara Integration Users
+
+The installer creates two additional database users for Vilara container access:
+
+| User | Purpose | Permissions |
+|------|---------|-------------|
+| `idempiere_readonly` | Read-only queries | SELECT on adempiere schema |
+| `idempiere_readwrite` | Read-write operations | SELECT, INSERT, UPDATE, DELETE on adempiere schema |
+
+Credentials are stored in `/home/idempiere/.pgpass`:
+
+```bash
+# View all database credentials
+incus exec id-xx -- su - idempiere -c "cat ~/.pgpass"
+
+# Example output:
+# localhost:5432:idempiere:adempiere:randompass1
+# localhost:5432:idempiere:idempiere_readonly:randompass2
+# localhost:5432:idempiere:idempiere_readwrite:randompass3
+```
+
+Note: The Vilara container's `.pgpass` (with the iDempiere container IP) is configured separately during Vilara integration.
+
+### Verify Remote Access
+
+When `VILARA_REMOTE_ACCESS=true`:
+
+```bash
+# Check PostgreSQL is listening on all interfaces (0.0.0.0)
+incus exec id-xx -- ss -tlnp | grep 5432
+
+# Check firewall allows port 5432
+incus exec id-xx -- iptables -L -n | grep 5432
+
+# Test connection from another container on the same network
+psql -h <idempiere-container-ip> -U idempiere_readonly -d idempiere -c "SELECT count(*) FROM ad_table"
 ```
 
 ## Installation Approach
