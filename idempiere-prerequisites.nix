@@ -27,7 +27,7 @@ let
   db = {
     name = "idempiere";
     user = "adempiere";
-    password = "adempiere";
+    # Password is generated randomly at first boot - see activationScripts.pgpass
     host = "localhost";
     port = 5432;
   };
@@ -53,11 +53,21 @@ in {
   '';
 
   # Create .pgpass for idempiere user (required for psqli and other pg tools)
+  # Password is generated randomly on first run and persisted across rebuilds
   system.activationScripts.pgpass = ''
     PGPASS_FILE="/home/${idempiere.user}/.pgpass"
-    echo "${db.host}:${toString db.port}:${db.name}:${db.user}:${db.password}" > "$PGPASS_FILE"
-    chown ${idempiere.user}:${idempiere.group} "$PGPASS_FILE"
-    chmod 600 "$PGPASS_FILE"
+
+    # Only generate password if .pgpass doesn't exist
+    if [ ! -f "$PGPASS_FILE" ]; then
+      # Generate a random 32-character alphanumeric password
+      DB_PASSWORD=$(${pkgs.coreutils}/bin/head -c 32 /dev/urandom | ${pkgs.coreutils}/bin/base64 | ${pkgs.coreutils}/bin/tr -dc 'a-zA-Z0-9' | ${pkgs.coreutils}/bin/head -c 32)
+      echo "${db.host}:${toString db.port}:${db.name}:${db.user}:$DB_PASSWORD" > "$PGPASS_FILE"
+      chown ${idempiere.user}:${idempiere.group} "$PGPASS_FILE"
+      chmod 600 "$PGPASS_FILE"
+      echo "Generated new database password in $PGPASS_FILE"
+    else
+      echo "Using existing database password from $PGPASS_FILE"
+    fi
   '';
 
   #############################################################################

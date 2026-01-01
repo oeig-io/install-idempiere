@@ -16,7 +16,7 @@ The installation follows a 3-phase approach:
 
 Key design decisions:
 - Uses sed-based configuration (from Debian installer) instead of Java properties parsing
-- `.pgpass` file is the single source of truth for database credentials
+- `.pgpass` file is the single source of truth for database credentials (password auto-generated on first boot, persists across rebuilds)
 - Includes NixOS-specific workarounds (e.g., `/bin/bash` symlink creation)
 
 ## Key Commands
