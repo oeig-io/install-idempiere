@@ -27,7 +27,7 @@ incus exec id-xx -- /opt/idempiere-install/install.sh
 #   This creates: /opt/idempiere-install/idempiere-third-party-deploy/install.sh (nested!)
 #   CORRECT: cd idempiere-third-party-deploy && incus file push -r . id-xx/opt/idempiere-install/
 
-# Note: the install can take up to 10 minutes.
+# Note: the install can take up to 15 minutes.
 
 # Access iDempiere
 # Web UI: http://<container-ip>:8080/webui/
