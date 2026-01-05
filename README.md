@@ -9,7 +9,6 @@ Based on the official guide: https://wiki.idempiere.org/en/Installing_iDempiere
 ```bash
 # Clone the repository
 git clone https://github.com/vilara-ai/idempiere-third-party-deploy.git
-cd idempiere-third-party-deploy
 
 # Create NixOS container
 incus launch images:nixos/25.11 id-xx \
@@ -19,6 +18,8 @@ incus launch images:nixos/25.11 id-xx \
   -d root,size=20GiB
 
 # Push repo and run installer (IMPORTANT: must run from within the repo directory)
+incus exec id-xx -- mkdir -p /opt/idempiere-install
+cd idempiere-third-party-deploy
 incus file push -r . id-xx/opt/idempiere-install/
 incus exec id-xx -- /opt/idempiere-install/install.sh
 
