@@ -462,6 +462,45 @@
       when: vilara_remote_access | default(false) | bool
 
     #########################################################################
+    # Create initial database backup
+    # Creates a clean backup before any modifications are made
+    # Backup stored in: /opt/idempiere-server/data/ExpDat<timestamp>.jar
+    #########################################################################
+    - name: Create initial database backup
+      become_user: "{{ idempiere_user }}"
+      ansible.builtin.command:
+        cmd: sh RUN_DBExport.sh
+        chdir: "{{ idempiere_install_dir }}/utils"
+      environment:
+        JAVA_HOME: "{{ java_home }}"
+        IDEMPIERE_HOME: "{{ idempiere_install_dir }}"
+      when: import_database | default(false) | bool
+      register: backup_result
+
+    - name: Display backup output
+      ansible.builtin.debug:
+        msg: "{{ backup_result.stdout_lines }}"
+      when:
+        - import_database | default(false) | bool
+        - backup_result.stdout_lines is defined
+
+    - name: Find backup file
+      ansible.builtin.find:
+        paths: "{{ idempiere_install_dir }}/data"
+        patterns: "ExpDat*.jar"
+      register: backup_files
+      when: import_database | default(false) | bool
+
+    - name: Display backup location
+      ansible.builtin.debug:
+        msg:
+          - "Initial database backup created successfully"
+          - "Backup file: {{ backup_files.files | map(attribute='path') | list | last }}"
+      when:
+        - import_database | default(false) | bool
+        - backup_files.files | length > 0
+
+    #########################################################################
     # Installation complete - next steps
     #########################################################################
     - name: Display next steps
