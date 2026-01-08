@@ -17,6 +17,9 @@ incus launch images:nixos/25.11 id-xx \
   -c limits.cpu=2 \
   -d root,size=20GiB
 
+# Add proxy port forward (90xx where xx = container number, e.g., id-05 → 9005)
+incus config device add id-xx myproxy proxy listen=tcp:0.0.0.0:90xx connect=tcp:127.0.0.1:8080
+
 # Push repo and run installer (IMPORTANT: must run from within the repo directory)
 incus exec id-xx -- mkdir -p /opt/idempiere-install
 cd idempiere-third-party-deploy
@@ -30,9 +33,9 @@ incus exec id-xx -- /opt/idempiere-install/install.sh
 
 # Note: the install can take up to 15 minutes.
 
-# Access iDempiere
-# Web UI: http://<container-ip>:8080/webui/
-# REST API: http://<container-ip>:8080/api/v1/
+# Access iDempiere (via proxy port on host)
+# Web UI: http://<host-ip>:90xx/webui/
+# REST API: http://<host-ip>:90xx/api/v1/
 ```
 
 ### With Vilara Remote Access
