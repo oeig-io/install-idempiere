@@ -96,6 +96,9 @@ in {
 
     # Quick connect to iDempiere database (psqli)
     psqli
+
+    # SVG to PNG converter for environment banners (lighter than ImageMagick)
+    resvg
   ];
 
   #############################################################################
