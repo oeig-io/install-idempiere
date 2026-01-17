@@ -64,6 +64,12 @@ in {
         idempiere.installDir
         "/var/log/idempiere"
         "/tmp"
+        # Storage provider directories for attachments, archives, images, DMS
+        "/opt/idempiere-doc-attachment"
+        "/opt/idempiere-doc-archive"
+        "/opt/idempiere-doc-image"
+        "/opt/idempiere-doc-dms-content"
+        "/opt/idempiere-doc-dms-thumbnail"
       ];
       PrivateTmp = true;
     };

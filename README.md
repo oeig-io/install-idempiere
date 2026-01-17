@@ -18,6 +18,7 @@ incus launch images:nixos/25.11 id-xx \
   -d root,size=20GiB
 
 # Add proxy port forward (90xx where xx = container number, e.g., id-05 → 9005)
+# Note: this command must be run separately from the above launch command. It hangs otherwise.
 incus config device add id-xx myproxy proxy listen=tcp:0.0.0.0:90xx connect=tcp:127.0.0.1:8080
 
 # Push repo and run installer (IMPORTANT: must run from within the repo directory)

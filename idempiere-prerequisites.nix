@@ -170,6 +170,14 @@ in {
     "d ${idempiere.installDir} 0755 ${idempiere.user} ${idempiere.group} -"
     # Log directory
     "d /var/log/idempiere 0755 ${idempiere.user} ${idempiere.group} -"
+    # Storage provider directories (for attachments, archives, images, DMS)
+    # Restricted permissions (0750) - may contain sensitive data
+    # See: planning/storage-provider-directories.md
+    "d /opt/idempiere-doc-attachment 0750 ${idempiere.user} ${idempiere.group} -"
+    "d /opt/idempiere-doc-archive 0750 ${idempiere.user} ${idempiere.group} -"
+    "d /opt/idempiere-doc-image 0750 ${idempiere.user} ${idempiere.group} -"
+    "d /opt/idempiere-doc-dms-content 0750 ${idempiere.user} ${idempiere.group} -"
+    "d /opt/idempiere-doc-dms-thumbnail 0750 ${idempiere.user} ${idempiere.group} -"
   ];
 
   #############################################################################
