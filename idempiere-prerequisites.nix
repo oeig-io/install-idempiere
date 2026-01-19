@@ -99,6 +99,10 @@ in {
 
     # SVG to PNG converter for environment banners (lighter than ImageMagick)
     resvg
+
+    # AI coding assistants
+    opencode
+    aichat
   ];
 
   #############################################################################
