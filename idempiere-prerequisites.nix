@@ -87,6 +87,8 @@ in {
     coreutils
     gnused
     gawk
+    expect   # For OSGi plugin deployment via telnet
+    inetutils  # Provides telnet for OSGi console access
 
     # Python (required for Ansible to work locally)
     python3
