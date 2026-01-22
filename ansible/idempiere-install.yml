@@ -83,6 +83,28 @@
         mode: '0755'
       when: not idempiere_extracted.stat.exists
 
+    - name: Check if iDempiere zip is pre-seeded in /tmp
+      ansible.builtin.stat:
+        path: "/tmp/idempiere-seed/{{ idempiere_zip_file }}"
+      register: idempiere_seed_exists
+      when: not idempiere_extracted.stat.exists
+
+    - name: Copy pre-seeded iDempiere zip to download directory
+      ansible.builtin.copy:
+        src: "/tmp/idempiere-seed/{{ idempiere_zip_file }}"
+        dest: "{{ idempiere_download_dir }}/{{ idempiere_zip_file }}"
+        remote_src: true
+        owner: "{{ idempiere_user }}"
+        group: "{{ idempiere_group }}"
+        mode: '0644'
+      when: not idempiere_extracted.stat.exists and (idempiere_seed_exists.stat.exists | default(false))
+
+    - name: Check if iDempiere zip exists in download directory
+      ansible.builtin.stat:
+        path: "{{ idempiere_download_dir }}/{{ idempiere_zip_file }}"
+      register: idempiere_zip_exists
+      when: not idempiere_extracted.stat.exists
+
     - name: Download iDempiere (this may take a while)
       ansible.builtin.get_url:
         url: "{{ idempiere_download_url }}"
@@ -91,7 +113,7 @@
         group: "{{ idempiere_group }}"
         mode: '0644'
         timeout: 600
-      when: not idempiere_extracted.stat.exists
+      when: not idempiere_extracted.stat.exists and not (idempiere_zip_exists.stat.exists | default(false))
 
     - name: Extract iDempiere archive
       ansible.builtin.unarchive:

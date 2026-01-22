@@ -48,6 +48,35 @@ For paired Vilara container deployments that need cross-container database acces
 incus exec id-xx -- env VILARA_REMOTE_ACCESS=true /opt/idempiere-install/install.sh
 ```
 
+### Pre-seeding the iDempiere Download
+
+If SourceForge is slow or unavailable, you can pre-copy the iDempiere zip file before running `install.sh`. The installer checks `/tmp/idempiere-seed/` for a pre-seeded file and uses it instead of downloading.
+
+**Option A: From host cache (recommended)**
+
+The host maintains a cached copy at `/opt/idempiere-seed/`:
+
+```bash
+# After pushing the repo but BEFORE running install.sh:
+incus exec id-xx -- mkdir -p /tmp/idempiere-seed
+incus file push /opt/idempiere-seed/idempiereServer12Daily.gtk.linux.x86_64.zip id-xx/tmp/idempiere-seed/
+
+# Now run the installer - it will use the pre-seeded file instead of downloading
+incus exec id-xx -- /opt/idempiere-install/install.sh
+```
+
+**Option B: From an existing container**
+
+```bash
+# Copy from an existing container (e.g., id-36) to the new container's seed directory
+incus exec id-xx -- mkdir -p /tmp/idempiere-seed
+incus file pull id-36/home/idempiere/downloads/idempiereServer12Daily.gtk.linux.x86_64.zip /tmp/
+incus file push /tmp/idempiereServer12Daily.gtk.linux.x86_64.zip id-xx/tmp/idempiere-seed/
+
+# Now run the installer
+incus exec id-xx -- /opt/idempiere-install/install.sh
+```
+
 This additionally:
 - Opens PostgreSQL port 5432 to the container network
 - Creates `idempiere_readonly` and `idempiere_readwrite` database users
