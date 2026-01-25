@@ -87,6 +87,7 @@ in {
     coreutils
     gnused
     gawk
+    jq       # JSON processing for REST API scripting
     expect   # For OSGi plugin deployment via telnet
     inetutils  # Provides telnet for OSGi console access
 
