@@ -106,6 +106,9 @@ in {
     # AI coding assistants
     opencode
     aichat
+
+    # Encryption for secrets management
+    age
   ];
 
   #############################################################################
