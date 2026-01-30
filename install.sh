@@ -7,7 +7,7 @@
 # Usage: ./install.sh
 #
 # Environment Variables:
-#   VILARA_REMOTE_ACCESS=true  Enable cross-container database access (default: false)
+#   IDEMPIERE_REMOTE_ACCESS=true  Enable cross-container database access (default: false)
 #
 # Assumes:
 #   - NixOS base system
@@ -18,7 +18,6 @@
 #   - Minimal logic, no feature-specific conditionals
 #   - Environment variables pass through to Ansible as extra vars
 #   - Conditional logic belongs in Ansible playbooks, not here
-#   - See: planning/idempiere-vilara-connector.md
 
 set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
@@ -44,7 +43,7 @@ echo "=== Phase 2: Ansible Installation ==="
 cd "$SCRIPT_DIR/ansible"
 ansible-playbook -i inventory.ini idempiere-install.yml \
     -e "import_database=true" \
-    -e "vilara_remote_access=${VILARA_REMOTE_ACCESS:-false}" \
+    -e "idempiere_remote_access=${IDEMPIERE_REMOTE_ACCESS:-false}" \
     --connection=local
 
 # Phase 3: NixOS Service

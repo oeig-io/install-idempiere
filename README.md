@@ -8,7 +8,7 @@ Based on the official guide: https://wiki.idempiere.org/en/Installing_iDempiere
 
 ```bash
 # Clone the repository
-git clone https://github.com/vilara-ai/idempiere-third-party-deploy.git
+git clone <repository-url>
 
 # Create NixOS container
 incus launch images:nixos/25.11 id-xx \
@@ -39,13 +39,13 @@ incus exec id-xx -- /opt/idempiere-install/install.sh
 # REST API: http://<host-ip>:90xx/api/v1/
 ```
 
-### With Vilara Remote Access
+### With iDempiere Remote Access
 
-For paired Vilara container deployments that need cross-container database access:
+For container deployments that need cross-container database access:
 
 ```bash
 # Enable remote access during installation
-incus exec id-xx -- env VILARA_REMOTE_ACCESS=true /opt/idempiere-install/install.sh
+incus exec id-xx -- env IDEMPIERE_REMOTE_ACCESS=true /opt/idempiere-install/install.sh
 ```
 
 ### Pre-seeding the iDempiere Download
@@ -148,7 +148,7 @@ incus exec id-xx -- journalctl -u idempiere -f
 ├── install.sh                       # Automated installer (runs all phases)
 ├── idempiere-prerequisites.nix      # Phase 1: System prerequisites
 ├── idempiere-service.nix            # Phase 2: systemd service (add after Ansible)
-├── idempiere-remote-access.nix      # Generated when VILARA_REMOTE_ACCESS=true
+├── idempiere-remote-access.nix      # Generated when IDEMPIERE_REMOTE_ACCESS=true
 ├── ansible/
 │   ├── idempiere-install.yml        # Main playbook
 │   ├── inventory.ini                # Ansible inventory
@@ -159,9 +159,9 @@ incus exec id-xx -- journalctl -u idempiere -f
 └── README.md
 ```
 
-## Vilara Integration Users
+## iDempiere Integration Users
 
-The installer creates two additional database users for Vilara container access:
+The installer creates two additional database users for cross-container access:
 
 | User | Purpose | Permissions |
 |------|---------|-------------|
@@ -180,11 +180,11 @@ incus exec id-xx -- su - idempiere -c "cat ~/.pgpass"
 # localhost:5432:idempiere:idempiere_readwrite:randompass3
 ```
 
-Note: The Vilara container's `.pgpass` (with the iDempiere container IP) is configured separately during Vilara integration.
+Note: Remote containers needing access should have their `.pgpass` configured with the iDempiere container IP.
 
 ### Verify Remote Access
 
-When `VILARA_REMOTE_ACCESS=true`:
+When `IDEMPIERE_REMOTE_ACCESS=true`:
 
 ```bash
 # Check PostgreSQL is listening on all interfaces (0.0.0.0)

@@ -279,10 +279,9 @@
       failed_when: false  # May not exist on all platforms
 
     #########################################################################
-    # Vilara Integration Users
-    # Creates read-only and read-write users for Vilara container access
+    # iDempiere Integration Users
+    # Creates read-only and read-write users for cross-container access
     # Credentials appended to .pgpass as single source of truth
-    # See: planning/idempiere-vilara-connector.md
     #########################################################################
     - name: Generate password for idempiere_readonly user
       ansible.builtin.shell: |
@@ -368,10 +367,10 @@
       when: import_database | default(false) | bool
       failed_when: false
 
-    - name: Display Vilara integration users created
+    - name: Display iDempiere integration users created
       ansible.builtin.debug:
         msg:
-          - "Vilara integration users created successfully"
+          - "iDempiere integration users created successfully"
           - "Credentials stored in /home/{{ idempiere_user }}/.pgpass"
           - "Users: idempiere_readonly, idempiere_readwrite"
       when: import_database | default(false) | bool
@@ -419,36 +418,35 @@
       failed_when: db_verify.rc != 0
 
     #########################################################################
-    # Vilara Remote Access (cross-container)
-    # Enabled by: VILARA_REMOTE_ACCESS=true -> vilara_remote_access=true
+    # iDempiere Remote Access (cross-container)
+    # Enabled by: IDEMPIERE_REMOTE_ACCESS=true -> idempiere_remote_access=true
     # Creates NixOS overlay module for remote PostgreSQL access
-    # See: planning/idempiere-vilara-connector.md
     #########################################################################
     - name: Get container IP address for remote access
       ansible.builtin.shell: |
         ip -4 addr show eth0 | grep -oP '(?<=inet\s)\d+(\.\d+){3}'
       register: container_ip_result
       changed_when: false
-      when: vilara_remote_access | default(false) | bool
+      when: idempiere_remote_access | default(false) | bool
 
     - name: Set container IP fact
       ansible.builtin.set_fact:
         container_ip: "{{ container_ip_result.stdout }}"
-      when: vilara_remote_access | default(false) | bool
+      when: idempiere_remote_access | default(false) | bool
 
     - name: Display remote access configuration
       ansible.builtin.debug:
         msg:
-          - "Configuring Vilara remote access..."
+          - "Configuring iDempiere remote access..."
           - "Container IP: {{ container_ip }}"
-      when: vilara_remote_access | default(false) | bool
+      when: idempiere_remote_access | default(false) | bool
 
     - name: Deploy remote access NixOS overlay
       ansible.builtin.template:
         src: idempiere-remote-access.nix.j2
         dest: "{{ playbook_dir }}/../idempiere-remote-access.nix"
         mode: '0644'
-      when: vilara_remote_access | default(false) | bool
+      when: idempiere_remote_access | default(false) | bool
 
     - name: Check if remote access already in configuration.nix
       ansible.builtin.shell: |
@@ -456,7 +454,7 @@
       register: remote_access_check
       failed_when: false
       changed_when: false
-      when: vilara_remote_access | default(false) | bool
+      when: idempiere_remote_access | default(false) | bool
 
     - name: Add remote access overlay to configuration.nix
       ansible.builtin.lineinfile:
@@ -464,24 +462,24 @@
         insertafter: 'idempiere-prerequisites.nix'
         line: "    {{ playbook_dir }}/../idempiere-remote-access.nix"
       when:
-        - vilara_remote_access | default(false) | bool
+        - idempiere_remote_access | default(false) | bool
         - remote_access_check.rc != 0
 
     - name: Rebuild NixOS with remote access configuration
       ansible.builtin.command:
         cmd: sudo nixos-rebuild switch
       when:
-        - vilara_remote_access | default(false) | bool
+        - idempiere_remote_access | default(false) | bool
         - remote_access_check.rc != 0
       register: rebuild_result
 
     - name: Display remote access complete
       ansible.builtin.debug:
         msg:
-          - "Vilara remote access configured successfully"
+          - "iDempiere remote access configured successfully"
           - "PostgreSQL listening on: {{ container_ip }}:{{ db_port }}"
           - "Credentials in: /home/{{ idempiere_user }}/.pgpass"
-      when: vilara_remote_access | default(false) | bool
+      when: idempiere_remote_access | default(false) | bool
 
     #########################################################################
     # Create initial database backup
