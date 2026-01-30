@@ -54,10 +54,19 @@ if grep -q "idempiere-service.nix" /etc/nixos/configuration.nix; then
 else
     sed -i 's|idempiere-prerequisites.nix|idempiere-prerequisites.nix\n    '"$SCRIPT_DIR"'/idempiere-service.nix|' /etc/nixos/configuration.nix
 fi
+
+# Phase 4: NixOS nginx reverse proxy
+echo ""
+echo "=== Phase 4: NixOS nginx ==="
+if grep -q "idempiere-nginx.nix" /etc/nixos/configuration.nix; then
+    echo "nginx already in configuration.nix, skipping..."
+else
+    sed -i 's|idempiere-service.nix|idempiere-service.nix\n    '"$SCRIPT_DIR"'/idempiere-nginx.nix|' /etc/nixos/configuration.nix
+fi
 sudo nixos-rebuild switch
 
 echo ""
 echo "=== iDempiere Installation Complete ==="
 echo "Service status: systemctl status idempiere"
-echo "Web UI: http://localhost:8080/webui/"
-echo "REST API: http://localhost:8080/api/v1/"
+echo "Web UI: https://localhost/webui/"
+echo "REST API: https://localhost/api/v1/"

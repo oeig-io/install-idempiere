@@ -23,12 +23,9 @@ let
 
 in {
   #############################################################################
-  # Firewall - allow iDempiere web ports
-  #############################################################################
-  networking.firewall.allowedTCPPorts = [ 8080 8443 ];
-
-  #############################################################################
   # iDempiere systemd service
+  # Note: Firewall ports handled by idempiere-nginx.nix (nginx on 80/443)
+  #       Jetty (8080/8443) only accessible on localhost
   #############################################################################
   systemd.services.idempiere = {
     description = "iDempiere ERP Server";

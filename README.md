@@ -19,7 +19,7 @@ incus launch images:nixos/25.11 id-xx \
 
 # Add proxy port forward (90xx where xx = container number, e.g., id-05 → 9005)
 # Note: this command must be run separately from the above launch command. It hangs otherwise.
-incus config device add id-xx myproxy proxy listen=tcp:0.0.0.0:90xx connect=tcp:127.0.0.1:8080
+incus config device add id-xx myproxy proxy listen=tcp:0.0.0.0:90xx connect=tcp:127.0.0.1:443
 
 # Push repo and run installer (IMPORTANT: must run from within the repo directory)
 incus exec id-xx -- mkdir -p /opt/idempiere-install
@@ -34,9 +34,9 @@ incus exec id-xx -- /opt/idempiere-install/install.sh
 
 # Note: the install can take up to 15 minutes.
 
-# Access iDempiere (via proxy port on host)
-# Web UI: http://<host-ip>:90xx/webui/
-# REST API: http://<host-ip>:90xx/api/v1/
+# Access iDempiere (via proxy port on host, self-signed SSL)
+# Web UI: https://<host-ip>:90xx/webui/
+# REST API: https://<host-ip>:90xx/api/v1/
 ```
 
 ### With iDempiere Remote Access
@@ -135,7 +135,15 @@ incus exec id-xx -- journalctl -u idempiere -f
 │  Phase 2: idempiere-service.nix                                         │
 │  ┌───────────────────────────────────────────────────────────────────┐  │
 │  │  - systemd service definition                                     │  │
-│  │  - Service starts automatically                                   │  │
+│  │  - Jetty on localhost:8080/8443 (internal only)                   │  │
+│  └───────────────────────────────────────────────────────────────────┘  │
+│                                 │                                       │
+│                                 ▼                                       │
+│  Phase 3: idempiere-nginx.nix                                           │
+│  ┌───────────────────────────────────────────────────────────────────┐  │
+│  │  - nginx reverse proxy on ports 80/443                            │  │
+│  │  - Self-signed SSL certificate (auto-generated)                   │  │
+│  │  - Proxies to Jetty on localhost:8443                             │  │
 │  └───────────────────────────────────────────────────────────────────┘  │
 │                                                                         │
 └─────────────────────────────────────────────────────────────────────────┘
@@ -147,7 +155,8 @@ incus exec id-xx -- journalctl -u idempiere -f
 .
 ├── install.sh                       # Automated installer (runs all phases)
 ├── idempiere-prerequisites.nix      # Phase 1: System prerequisites
-├── idempiere-service.nix            # Phase 2: systemd service (add after Ansible)
+├── idempiere-service.nix            # Phase 2: systemd service
+├── idempiere-nginx.nix              # Phase 3: nginx reverse proxy (ports 80/443)
 ├── idempiere-remote-access.nix      # Generated when IDEMPIERE_REMOTE_ACCESS=true
 ├── ansible/
 │   ├── idempiere-install.yml        # Main playbook
@@ -211,7 +220,7 @@ The playbook uses a sed-style configuration approach (learned from studying the 
 
 ## REST API Examples
 
-After installation, the REST API is available at `http://<server>:8080/api/v1/`. See the [full documentation](https://bxservice.github.io/idempiere-rest-docs/) for details.
+After installation, the REST API is available at `https://<server>/api/v1/`. See the [full documentation](https://bxservice.github.io/idempiere-rest-docs/) for details.
 
 ### Checking REST API Readiness
 
@@ -242,7 +251,7 @@ echo "REST API ready"
 
 ```bash
 # Get authentication token (valid for 1 hour)
-curl -X POST http://localhost:8080/api/v1/auth/tokens \
+curl -X POST https://localhost/api/v1/auth/tokens \
   -H "Content-Type: application/json" \
   -d '{"userName":"GardenAdmin","password":"GardenAdmin"}'
 
@@ -256,7 +265,7 @@ curl -X POST http://localhost:8080/api/v1/auth/tokens \
 # Use the token from above to select a client
 TOKEN="eyJraWQiOi..."
 
-curl -X PUT http://localhost:8080/api/v1/auth/tokens \
+curl -X PUT https://localhost/api/v1/auth/tokens \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer $TOKEN" \
   -d '{"clientId":11,"roleId":102,"organizationId":0,"warehouseId":0}'
@@ -267,14 +276,14 @@ curl -X PUT http://localhost:8080/api/v1/auth/tokens \
 ### Query Business Partners
 
 ```bash
-curl -X GET "http://localhost:8080/api/v1/models/c_bpartner" \
+curl -X GET "https://localhost/api/v1/models/c_bpartner" \
   -H "Authorization: Bearer $TOKEN"
 ```
 
 ### Query Products
 
 ```bash
-curl -X GET "http://localhost:8080/api/v1/models/m_product" \
+curl -X GET "https://localhost/api/v1/models/m_product" \
   -H "Authorization: Bearer $TOKEN"
 ```
 
@@ -282,14 +291,14 @@ curl -X GET "http://localhost:8080/api/v1/models/m_product" \
 
 ```bash
 # Get active products with specific columns
-curl -X GET "http://localhost:8080/api/v1/models/m_product?\$filter=IsActive eq true&\$select=Name,Value,Description" \
+curl -X GET "https://localhost/api/v1/models/m_product?\$filter=IsActive eq true&\$select=Name,Value,Description" \
   -H "Authorization: Bearer $TOKEN"
 ```
 
 ### Create a Business Partner
 
 ```bash
-curl -X POST http://localhost:8080/api/v1/models/c_bpartner \
+curl -X POST https://localhost/api/v1/models/c_bpartner \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer $TOKEN" \
   -d '{
@@ -363,11 +372,11 @@ cd ansible
 ansible-playbook -i inventory.ini idempiere-install.yml -e "import_database=true" --connection=local
 ```
 
-### Phase 3: Enable the Service
+### Phase 3: Enable the Service and nginx
 
 ```bash
-# Add service import to configuration.nix
-sed -i 's|./idempiere-prerequisites.nix|./idempiere-prerequisites.nix\n    ./idempiere-service.nix|' /etc/nixos/configuration.nix
+# Add service and nginx imports to configuration.nix
+sed -i 's|./idempiere-prerequisites.nix|./idempiere-prerequisites.nix\n    ./idempiere-service.nix\n    ./idempiere-nginx.nix|' /etc/nixos/configuration.nix
 
 sudo nixos-rebuild switch
 ```

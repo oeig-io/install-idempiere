@@ -8,11 +8,12 @@ This is an iDempiere ERP deployment automation framework for NixOS. It combines 
 
 ## Architecture
 
-The installation follows a 3-phase approach:
+The installation follows a 4-phase approach:
 
 1. **Phase 1 - NixOS Prerequisites** (`idempiere-prerequisites.nix`): System packages, PostgreSQL, idempiere user, directories
 2. **Phase 2 - Ansible Orchestration** (`ansible/idempiere-install.yml`): Download iDempiere, configure, import database, install REST API plugin
-3. **Phase 3 - NixOS Service** (`idempiere-service.nix`): systemd service definition with auto-start and firewall rules
+3. **Phase 3 - NixOS Service** (`idempiere-service.nix`): systemd service definition (Jetty on localhost:8080/8443)
+4. **Phase 4 - NixOS nginx** (`idempiere-nginx.nix`): nginx reverse proxy on ports 80/443 with self-signed SSL
 
 Key design decisions:
 - Uses sed-based configuration (from Debian installer) instead of Java properties parsing
@@ -22,7 +23,7 @@ Key design decisions:
 ## Key Commands
 
 ```bash
-# Full installation (runs all 3 phases)
+# Full installation (runs all 4 phases)
 ./install.sh
 
 # Phase 1: Apply NixOS prerequisites
@@ -34,6 +35,7 @@ ansible-playbook -i inventory.ini idempiere-install.yml -e 'import_database=true
 
 # Service management
 systemctl status idempiere
+systemctl status nginx
 systemctl start idempiere
 systemctl stop idempiere
 journalctl -u idempiere -f
@@ -43,7 +45,7 @@ psqli
 psqli -c "SELECT * FROM ad_system"
 
 # REST API token (default credentials: GardenAdmin/GardenAdmin)
-curl -X POST http://localhost:8080/api/v1/auth/tokens \
+curl -k -X POST https://localhost/api/v1/auth/tokens \
   -H "Content-Type: application/json" \
   -d '{"userName":"GardenAdmin","password":"GardenAdmin"}'
 ```
@@ -52,8 +54,9 @@ curl -X POST http://localhost:8080/api/v1/auth/tokens \
 
 - `idempiere-prerequisites.nix` - NixOS module for system dependencies and PostgreSQL
 - `idempiere-service.nix` - NixOS systemd service definition
+- `idempiere-nginx.nix` - NixOS nginx reverse proxy (ports 80/443)
 - `install.sh` - Automated installation entry point
-- `ansible/idempiere-install.yml` - Main Ansible playbook (330 lines)
+- `ansible/idempiere-install.yml` - Main Ansible playbook
 - `ansible/vars/idempiere.yml` - Deployment variables and passwords
 - `ansible/inventory.ini` - Ansible host configuration
 
@@ -67,7 +70,8 @@ curl -X POST http://localhost:8080/api/v1/auth/tokens \
 ## iDempiere Configuration
 
 - Installation directory: `/opt/idempiere-server`
-- Ports: 8080 (HTTP), 8443 (HTTPS)
+- External ports: 80 (HTTP → redirects to HTTPS), 443 (HTTPS via nginx)
+- Internal ports: Jetty on localhost:8080/8443 (not exposed externally)
 - Database: PostgreSQL 17 on localhost:5432
 - Database role must be SUPERUSER for JDBC connection
 - Script name is `silent-setup-alt.sh` (not `silentsetup-alt.sh`)
