@@ -2,85 +2,22 @@
 
 Simple iDempiere ERP installation using NixOS for system configuration and Ansible for orchestration. Includes the [REST API plugin](https://github.com/bxservice/idempiere-rest) by default (see [REST API docs](https://bxservice.github.io/idempiere-rest-docs/)).
 
-Based on the official guide: https://wiki.idempiere.org/en/Installing_iDempiere
-
 ## Quick Start
 
 ```bash
-# Clone the repository
-git clone <repository-url>
-
-# Create NixOS container
-incus launch images:nixos/25.11 id-xx \
-  -c security.nesting=true \
-  -c limits.memory=4GiB \
-  -c limits.cpu=2 \
-  -d root,size=20GiB
-
-# Add proxy port forward (90xx where xx = container number, e.g., id-05 → 9005)
-# Note: this command must be run separately from the above launch command. It hangs otherwise.
-incus config device add id-xx myproxy proxy listen=tcp:0.0.0.0:90xx connect=tcp:127.0.0.1:443
-
-# Push repo and run installer (IMPORTANT: must run from within the repo directory)
-incus exec id-xx -- mkdir -p /opt/idempiere-install
-cd idempiere-third-party-deploy
-incus file push -r . id-xx/opt/idempiere-install/
-incus exec id-xx -- /opt/idempiere-install/install.sh
-
-# If pushing from outside the repo (e.g., from parent directory), the structure will be wrong:
-#   WRONG:  incus file push -r ./idempiere-third-party-deploy/. id-xx/opt/idempiere-install/
-#   This creates: /opt/idempiere-install/idempiere-third-party-deploy/install.sh (nested!)
-#   CORRECT: cd idempiere-third-party-deploy && incus file push -r . id-xx/opt/idempiere-install/
-
-# Note: the install can take up to 15 minutes.
-
-# Access iDempiere (via proxy port on host, self-signed SSL)
-# Web UI: https://<host-ip>:90xx/webui/
-# REST API: https://<host-ip>:90xx/api/v1/
+./launch.sh id-47
 ```
 
-### With iDempiere Remote Access
+This creates container `id-47` with proxy port `9047`, pre-seeds the download, installs iDempiere, and waits for ready. Access at `https://<host>:9047/webui/`.
 
-For container deployments that need cross-container database access:
+### With Remote Database Access
 
 ```bash
-# Enable remote access during installation
-incus exec id-xx -- env IDEMPIERE_REMOTE_ACCESS=true /opt/idempiere-install/install.sh
+./launch.sh id-47 --no-install
+incus exec id-47 -- env IDEMPIERE_REMOTE_ACCESS=true /opt/idempiere-install/install.sh
 ```
 
-### Pre-seeding the iDempiere Download
-
-If SourceForge is slow or unavailable, you can pre-copy the iDempiere zip file before running `install.sh`. The installer checks `/tmp/idempiere-seed/` for a pre-seeded file and uses it instead of downloading.
-
-**Option A: From host cache (recommended)**
-
-The host maintains a cached copy at `/opt/idempiere-seed/`:
-
-```bash
-# After pushing the repo but BEFORE running install.sh:
-incus exec id-xx -- mkdir -p /tmp/idempiere-seed
-incus file push /opt/idempiere-seed/idempiereServer12Daily.gtk.linux.x86_64.zip id-xx/tmp/idempiere-seed/
-
-# Now run the installer - it will use the pre-seeded file instead of downloading
-incus exec id-xx -- /opt/idempiere-install/install.sh
-```
-
-**Option B: From an existing container**
-
-```bash
-# Copy from an existing container (e.g., id-36) to the new container's seed directory
-incus exec id-xx -- mkdir -p /tmp/idempiere-seed
-incus file pull id-36/home/idempiere/downloads/idempiereServer12Daily.gtk.linux.x86_64.zip /tmp/
-incus file push /tmp/idempiereServer12Daily.gtk.linux.x86_64.zip id-xx/tmp/idempiere-seed/
-
-# Now run the installer
-incus exec id-xx -- /opt/idempiere-install/install.sh
-```
-
-This additionally:
-- Opens PostgreSQL port 5432 to the container network
-- Creates `idempiere_readonly` and `idempiere_readwrite` database users
-- Configures pg_hba.conf for container network access (10.0.0.0/8)
+The `--no-install` flag stops after pushing the repo, allowing manual install with flags. Remote access opens PostgreSQL port 5432 and creates `idempiere_readonly` and `idempiere_readwrite` database users.
 
 ## Running Commands in the Container
 
@@ -153,19 +90,15 @@ incus exec id-xx -- journalctl -u idempiere -f
 
 ```
 .
-├── install.sh                       # Automated installer (runs all phases)
+├── launch.sh                        # Creates container, installs, waits for ready
+├── install.sh                       # Automated installer (runs inside container)
 ├── idempiere-prerequisites.nix      # Phase 1: System prerequisites
 ├── idempiere-service.nix            # Phase 2: systemd service
 ├── idempiere-nginx.nix              # Phase 3: nginx reverse proxy (ports 80/443)
 ├── idempiere-remote-access.nix      # Generated when IDEMPIERE_REMOTE_ACCESS=true
-├── ansible/
-│   ├── idempiere-install.yml        # Main playbook
-│   ├── inventory.ini                # Ansible inventory
-│   ├── templates/
-│   │   └── idempiere-remote-access.nix.j2  # Remote access NixOS overlay
-│   └── vars/
-│       └── idempiere.yml            # Variables (DB password auto-generated)
-└── README.md
+└── ansible/
+    ├── idempiere-install.yml        # Main playbook
+    └── vars/idempiere.yml           # Variables (DB password auto-generated)
 ```
 
 ## iDempiere Integration Users

@@ -52,13 +52,13 @@ curl -k -X POST https://localhost/api/v1/auth/tokens \
 
 ## File Structure
 
+- `launch.sh` - Creates container, pushes repo, runs install.sh, waits for ready
+- `install.sh` - Automated installation (runs inside container)
 - `idempiere-prerequisites.nix` - NixOS module for system dependencies and PostgreSQL
 - `idempiere-service.nix` - NixOS systemd service definition
 - `idempiere-nginx.nix` - NixOS nginx reverse proxy (ports 80/443)
-- `install.sh` - Automated installation entry point
 - `ansible/idempiere-install.yml` - Main Ansible playbook
 - `ansible/vars/idempiere.yml` - Deployment variables and passwords
-- `ansible/inventory.ini` - Ansible host configuration
 
 ## NixOS-Specific Notes
 
@@ -76,9 +76,14 @@ curl -k -X POST https://localhost/api/v1/auth/tokens \
 - Database role must be SUPERUSER for JDBC connection
 - Script name is `silent-setup-alt.sh` (not `silentsetup-alt.sh`)
 
-## Container Access
+## Container Deployment
 
-See `README.md` for container deployment (incus), installation steps, and running commands as the `idempiere` user.
+```bash
+./launch.sh id-xx              # Create and install
+./launch.sh id-xx --no-install # Create only (for manual install with flags)
+```
+
+See `README.md` for details and running commands inside the container.
 
 ## Reference Documentation
 
