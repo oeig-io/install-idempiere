@@ -52,7 +52,6 @@ curl -k -X POST https://localhost/api/v1/auth/tokens \
 
 ## File Structure
 
-- `launch.sh` - Creates container, pushes repo, runs install.sh, waits for ready
 - `install.sh` - Automated installation (runs inside container)
 - `idempiere-prerequisites.nix` - NixOS module for system dependencies and PostgreSQL
 - `idempiere-service.nix` - NixOS systemd service definition
@@ -78,9 +77,12 @@ curl -k -X POST https://localhost/api/v1/auth/tokens \
 
 ## Container Deployment
 
+Container creation is handled by the `container-management` module:
+
 ```bash
-./launch.sh id-xx              # Create and install
-./launch.sh id-xx --no-install # Create only (for manual install with flags)
+# From container-management directory:
+./launch.sh configs/idempiere.conf id-xx              # Create and install
+./launch.sh configs/idempiere.conf id-xx --no-install # Create only (for manual install with flags)
 ```
 
 See `README.md` for details and running commands inside the container.

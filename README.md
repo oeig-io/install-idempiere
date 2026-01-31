@@ -4,8 +4,11 @@ Simple iDempiere ERP installation using NixOS for system configuration and Ansib
 
 ## Quick Start
 
+Container creation is handled by the `container-management` module. This repo provides only the installer (`install.sh`) that runs inside the container.
+
 ```bash
-./launch.sh id-47
+# From the container-management directory:
+./launch.sh configs/idempiere.conf id-47
 ```
 
 This creates container `id-47` with proxy port `9047`, pre-seeds the download, installs iDempiere, and waits for ready. Access at `https://<host>:9047/webui/`.
@@ -13,7 +16,10 @@ This creates container `id-47` with proxy port `9047`, pre-seeds the download, i
 ### With Remote Database Access
 
 ```bash
-./launch.sh id-47 --no-install
+# From container-management:
+./launch.sh configs/idempiere.conf id-47 --no-install
+
+# Then run install with env var:
 incus exec id-47 -- env IDEMPIERE_REMOTE_ACCESS=true /opt/idempiere-install/install.sh
 ```
 
@@ -90,7 +96,6 @@ incus exec id-xx -- journalctl -u idempiere -f
 
 ```
 .
-├── launch.sh                        # Creates container, installs, waits for ready
 ├── install.sh                       # Automated installer (runs inside container)
 ├── idempiere-prerequisites.nix      # Phase 1: System prerequisites
 ├── idempiere-service.nix            # Phase 2: systemd service
