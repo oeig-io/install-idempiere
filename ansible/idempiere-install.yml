@@ -467,7 +467,7 @@
 
     - name: Rebuild NixOS with remote access configuration
       ansible.builtin.command:
-        cmd: sudo nixos-rebuild switch
+        cmd: sudo nixos-rebuild switch 2>&1 | tail -n 20
       when:
         - idempiere_remote_access | default(false) | bool
         - remote_access_check.rc != 0

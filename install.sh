@@ -33,7 +33,7 @@ if grep -q "idempiere-prerequisites.nix" /etc/nixos/configuration.nix; then
 else
     sed -i 's|./incus.nix|./incus.nix\n    '"$SCRIPT_DIR"'/idempiere-prerequisites.nix|' /etc/nixos/configuration.nix
 fi
-sudo nixos-rebuild switch
+sudo nixos-rebuild switch 2>&1 | tail -n 20
 
 # Phase 2: Ansible Installation
 # Environment variables are passed through as Ansible extra vars.
@@ -63,7 +63,7 @@ if grep -q "idempiere-nginx.nix" /etc/nixos/configuration.nix; then
 else
     sed -i 's|idempiere-service.nix|idempiere-service.nix\n    '"$SCRIPT_DIR"'/idempiere-nginx.nix|' /etc/nixos/configuration.nix
 fi
-sudo nixos-rebuild switch
+sudo nixos-rebuild switch 2>&1 | tail -n 20
 
 echo ""
 echo "=== iDempiere Installation Complete ==="
