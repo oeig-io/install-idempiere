@@ -44,6 +44,12 @@ let
 
 in {
   #############################################################################
+  # Timezone Configuration - Default to America/Chicago
+  # Can be overridden by container-management/launch.sh when needed
+  #############################################################################
+  time.timeZone = "America/Chicago";
+
+  #############################################################################
   # Compatibility: iDempiere scripts expect /bin/bash
   # NixOS doesn't have /bin/bash by default
   #############################################################################
