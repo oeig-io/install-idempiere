@@ -58,6 +58,11 @@ in {
     ln -sf ${pkgs.bash}/bin/bash /bin/bash
   '';
 
+  system.activationScripts.opencode-dirs = ''
+    mkdir -p /home/${idempiere.user}/.local/share/opencode
+    chown ${idempiere.user}:${idempiere.group} /home/${idempiere.user}/.local/share/opencode
+  '';
+
   # Create .pgpass for idempiere user (required for psqli and other pg tools)
   # Password is generated randomly on first run and persisted across rebuilds
   system.activationScripts.pgpass = ''
