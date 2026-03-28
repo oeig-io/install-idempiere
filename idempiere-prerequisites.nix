@@ -105,6 +105,9 @@ in {
     # Python (required for Ansible to work locally)
     python3
 
+    # Maven - for building iDempiere from source
+    maven
+
     # Ansible for orchestration (run from this machine or control node)
     ansible
 
