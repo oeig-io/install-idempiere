@@ -63,6 +63,9 @@ in {
     chown ${idempiere.user}:${idempiere.group} /home/${idempiere.user}/.local/share/opencode
   '';
 
+  # enable netbird - must bring up manually
+  services.netbird.enable = true;
+
   # Create .pgpass for idempiere user (required for psqli and other pg tools)
   # Password is generated randomly on first run and persisted across rebuilds
   system.activationScripts.pgpass = ''
