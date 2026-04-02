@@ -66,6 +66,14 @@ in {
   # enable netbird - must bring up manually
   services.netbird.enable = true;
 
+  #############################################################################
+  # IPv6 Configuration - Disable temporary addresses for stable addressing
+  #############################################################################
+  boot.kernel.sysctl = {
+    "net.ipv6.conf.all.use_tempaddr" = 0;
+    "net.ipv6.conf.default.use_tempaddr" = 0;
+  };
+
   # Create .pgpass for idempiere user (required for psqli and other pg tools)
   # Password is generated randomly on first run and persisted across rebuilds
   system.activationScripts.pgpass = ''
