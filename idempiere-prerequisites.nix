@@ -70,8 +70,8 @@ in {
   # IPv6 Configuration - Disable temporary addresses for stable addressing
   #############################################################################
   boot.kernel.sysctl = {
-    "net.ipv6.conf.all.use_tempaddr" = 0;
-    "net.ipv6.conf.default.use_tempaddr" = 0;
+    "net.ipv6.conf.all.use_tempaddr" = lib.mkForce 0;
+    "net.ipv6.conf.default.use_tempaddr" = lib.mkForce 0;
   };
 
   # Create .pgpass for idempiere user (required for psqli and other pg tools)
