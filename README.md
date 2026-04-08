@@ -43,7 +43,7 @@ incus exec id-xx -- journalctl -u idempiere -f
 │                                 ▼                                       │
 │  ┌───────────────────────────────────────────────────────────────────┐  │
 │  │  Ansible (idempiere-install.yml)                                  │  │
-│  │  - Download iDempiere 12 from SourceForge                         │  │
+│  │  - Download iDempiere 13 from SourceForge                         │  │
 │  │  - Extract and install to /opt/idempiere-server                   │  │
 │  │  - Configure idempiereEnv.properties via lineinfile (sed-style)   │  │
 │  │  - Run silent-setup-alt.sh                                        │  │
@@ -270,7 +270,7 @@ This sed-based approach bypasses the Java silent installer's property file parsi
 - [Installing from Installers](https://wiki.idempiere.org/en/Installing_from_Installers)
 - [Debian Installer](https://wiki.idempiere.org/en/IDempiere_Debian_Installer)
 - [NixOS Manual](https://nixos.org/manual/nixos/stable/)
-- [SourceForge Downloads](https://sourceforge.net/projects/idempiere/files/v12/daily-server/)
+- [SourceForge Downloads](https://sourceforge.net/projects/idempiere/files/v13/daily-server/)
 - [REST API Plugin](https://github.com/bxservice/idempiere-rest)
 - [REST API Documentation](https://bxservice.github.io/idempiere-rest-docs/)
 - [github.com/oeig-io/container-management](https://github.com/oeig-io/container-management) - Deployment standards and orchestration

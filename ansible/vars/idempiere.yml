@@ -6,15 +6,15 @@
 #############################################################################
 # iDempiere Configuration
 #############################################################################
-idempiere_version: "12"
+idempiere_version: "13"
 idempiere_user: "idempiere"
 idempiere_group: "idempiere"
 idempiere_install_dir: "/opt/idempiere-server"
 idempiere_download_dir: "/home/idempiere/downloads"
 
 # Download URL (SourceForge daily build)
-idempiere_zip_file: "idempiereServer12Daily.gtk.linux.x86_64.zip"
-idempiere_download_url: "https://sourceforge.net/projects/idempiere/files/v12/daily-server/{{ idempiere_zip_file }}"
+idempiere_zip_file: "idempiereServer{{ idempiere_version }}Daily.gtk.linux.x86_64.zip"
+idempiere_download_url: "https://sourceforge.net/projects/idempiere/files/v{{ idempiere_version }}/daily-server/{{ idempiere_zip_file }}"
 
 #############################################################################
 # Web Server Configuration

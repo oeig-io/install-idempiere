@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-This is an iDempiere ERP deployment automation framework for NixOS. It combines NixOS declarative configuration with Ansible orchestration to deploy iDempiere 12 with PostgreSQL 17 and the REST API plugin.
+This is an iDempiere ERP deployment automation framework for NixOS. It combines NixOS declarative configuration with Ansible orchestration to deploy iDempiere 13 with PostgreSQL 17 and the REST API plugin.
 
 ## Architecture
 
