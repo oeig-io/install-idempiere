@@ -30,6 +30,14 @@ let
     # Password is generated randomly at first boot - see activationScripts.pgpass
     host = "localhost";
     port = 5432;
+    # Allow remote (non-localhost) PostgreSQL connections.
+    #   true  -> binds all interfaces, opens firewall port 5432, and adds
+    #            pg_hba rules for all IPv4/IPv6 clients. Access is still
+    #            password-gated via scram-sha-256 (no anonymous access), but
+    #            the firewall becomes the real network boundary - only enable
+    #            on hosts behind a trusted network (private bridge / VPN).
+    #   false -> localhost-only (original secure default).
+    remoteAccess = true;
   };
 
   # Wrapper script to connect to iDempiere database (uses ~/.pgpass for auth)
@@ -157,16 +165,18 @@ in {
     enable = true;
     package = pkgs.postgresql_17;
 
-    # Listen on localhost only (change for remote DB access)
+    # listen_addresses: all interfaces when remote access is enabled,
+    # otherwise localhost only. NixOS forces "*" when enableTCPIP = true,
+    # so use lib.mkForce to control it explicitly.
     enableTCPIP = true;
     settings = {
       port = db.port;
-      listen_addresses = lib.mkForce "localhost";
+      listen_addresses = lib.mkForce (if db.remoteAccess then "*" else "localhost");
     };
 
     # Authentication - scram-sha-256 per official guide
     # The postgres user password will be set by Ansible
-    authentication = lib.mkForce ''
+    authentication = lib.mkForce (''
       # TYPE  DATABASE        USER            ADDRESS                 METHOD
       # Local connections
       local   all             postgres                                peer
@@ -175,7 +185,11 @@ in {
       host    all             all             127.0.0.1/32            scram-sha-256
       # IPv6 local connections
       host    all             all             ::1/128                 scram-sha-256
-    '';
+    '' + lib.optionalString db.remoteAccess ''
+      # Remote connections (all networks) - password-gated via scram-sha-256
+      host    all             all             0.0.0.0/0               scram-sha-256
+      host    all             all             ::/0                    scram-sha-256
+    '');
 
     # Note: Database and role creation handled by Ansible after
     # iDempiere's RUN_ImportIdempiere.sh which creates the schema
@@ -219,10 +233,11 @@ in {
   ];
 
   #############################################################################
-  # Firewall - Uncomment to open iDempiere ports
+  # Firewall
+  # iDempiere HTTP/HTTPS ports (8080/8443) are left for the nginx module / your
+  # own config to open. PostgreSQL 5432 is opened only when db.remoteAccess is
+  # enabled above.
   #############################################################################
-  # networking.firewall.allowedTCPPorts = [
-  #   8080   # HTTP
-  #   8443   # HTTPS
-  # ];
+  networking.firewall.allowedTCPPorts =
+    lib.optionals db.remoteAccess [ 5432 ];
 }

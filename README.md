@@ -226,12 +226,15 @@ curl -X POST https://localhost/api/v1/models/c_bpartner \
 
 2. **Python required for Ansible** - Must explicitly add `python3` to system packages for Ansible to work locally.
 
-3. **PostgreSQL `listen_addresses` conflict** - When `enableTCPIP = true`, NixOS sets `listen_addresses = "*"`. Use `lib.mkForce` to override:
+3. **PostgreSQL `listen_addresses` conflict** - When `enableTCPIP = true`, NixOS sets `listen_addresses = "*"`. The module uses `lib.mkForce` to control it explicitly, driven by the `db.remoteAccess` toggle in the `let` block:
    ```nix
    settings = {
-     listen_addresses = lib.mkForce "localhost";
+     listen_addresses = lib.mkForce (if db.remoteAccess then "*" else "localhost");
    };
    ```
+   **Remote DB access (`db.remoteAccess`)** - Set in the `db` let-block in `idempiere-prerequisites.nix`:
+   - `true` (default): binds all interfaces, opens firewall port `5432`, and adds `pg_hba` rules for all IPv4/IPv6 clients (`0.0.0.0/0`, `::/0`). Access is still password-gated via `scram-sha-256` (no anonymous access), but the firewall becomes the real network boundary — only enable on hosts behind a trusted network (private bridge / VPN).
+   - `false`: localhost-only, firewall port `5432` stays closed (original secure default).
 
 4. **Always use `sudo nixos-rebuild`** - Even when running as root, `sudo` is required to set up the proper NIX_PATH environment.
 
