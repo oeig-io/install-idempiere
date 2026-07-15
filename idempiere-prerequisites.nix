@@ -50,6 +50,17 @@ let
       "$@"
   '';
 
+  # pg_durable: durable SQL functions, built as a native PG 17 extension.
+  # Always installed (see pg-durable.nix for the build recipe and rationale).
+  pgDurable = pkgs.callPackage ./pg-durable.nix { postgresql = pkgs.postgresql_17; };
+
+  # pg_durable is a cluster-level singleton: one background worker bound to one
+  # "home" database (pg_durable.database). We home it in `postgres` to keep the
+  # df.*/duroxide.* state out of the iDempiere application schema; workflows can
+  # still target the `idempiere` database via df.start(..., database => ...).
+  pgDurableHomeDb = "postgres";
+  pgDurableWorkerRole = "postgres"; # must be a superuser (bypasses RLS)
+
 in {
   #############################################################################
   # Timezone Configuration - Default to America/Chicago
@@ -172,7 +183,19 @@ in {
     settings = {
       port = db.port;
       listen_addresses = lib.mkForce (if db.remoteAccess then "*" else "localhost");
+      # pg_durable registers a background worker via shared_preload_libraries.
+      # This requires a PostgreSQL restart to take effect (not a reload).
+      shared_preload_libraries = "pg_durable";
+      "pg_durable.database" = pgDurableHomeDb;
+      "pg_durable.worker_role" = pgDurableWorkerRole;
+      # We run durable functions as the postgres superuser on this cluster,
+      # so allow superuser-submitted instances (off by default). Matches the
+      # upstream Docker image's configuration.
+      "pg_durable.enable_superuser_instances" = "on";
     };
+
+    # Native PG 17 build of pg_durable (see pg-durable.nix).
+    extraPlugins = _: [ pgDurable ];
 
     # Authentication - scram-sha-256 per official guide
     # The postgres user password will be set by Ansible
@@ -181,10 +204,16 @@ in {
       # Local connections
       local   all             postgres                                peer
       local   all             all                                     scram-sha-256
-      # IPv4 local connections
-      host    all             all             127.0.0.1/32            scram-sha-256
-      # IPv6 local connections
-      host    all             all             ::1/128                 scram-sha-256
+      # IPv4/IPv6 loopback connections use trust.
+      # pg_durable's background worker connects over loopback as many different
+      # roles (the worker role and each submitting login role) with no stored
+      # credentials, delegating auth entirely to pg_hba - this requires trust
+      # (or peer) for local connections. See pg_durable docs/user-isolation.md.
+      # Scope is loopback-only; remote clients still authenticate via
+      # scram-sha-256 below. iDempiere's loopback connections are unaffected
+      # (trust accepts the password it sends).
+      host    all             all             127.0.0.1/32            trust
+      host    all             all             ::1/128                 trust
     '' + lib.optionalString db.remoteAccess ''
       # Remote connections (all networks) - password-gated via scram-sha-256
       host    all             all             0.0.0.0/0               scram-sha-256
