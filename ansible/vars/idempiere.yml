@@ -34,6 +34,11 @@ idempiere_keystore_password: "myPassword"
 #############################################################################
 db_type: "PostgreSQL"
 
+# pg_durable home database - must match the pg_durable.database GUC set in
+# idempiere-prerequisites.nix. The extension is created here so its background
+# worker (bound to this one database) can initialize.
+pg_durable_database: "postgres"
+
 # PostgreSQL admin user (for creating database and setting system password)
 db_admin_user: "postgres"
 db_admin_password: "postgres"  # CHANGE THIS!

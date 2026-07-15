@@ -279,6 +279,21 @@
       failed_when: false  # May not exist on all platforms
 
     #########################################################################
+    # pg_durable extension (durable SQL functions) - always enabled
+    # The extension library is preloaded by NixOS (idempiere-prerequisites.nix
+    # sets shared_preload_libraries + GUCs). Here we create the extension in
+    # the pg_durable home database so the background worker can initialize.
+    # Not gated on import_database: CREATE EXTENSION IF NOT EXISTS is safe to
+    # run on every install and re-run.
+    #########################################################################
+    - name: Enable pg_durable extension in the home database
+      become_user: postgres
+      ansible.builtin.command:
+        cmd: psql -d "{{ pg_durable_database }}" -c "CREATE EXTENSION IF NOT EXISTS pg_durable"
+      register: create_pg_durable
+      changed_when: "'CREATE EXTENSION' in create_pg_durable.stdout"
+
+    #########################################################################
     # iDempiere Integration Users
     # Creates read-only and read-write users for cross-container access
     # Credentials appended to .pgpass as single source of truth
