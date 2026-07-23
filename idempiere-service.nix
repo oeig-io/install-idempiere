@@ -67,6 +67,8 @@ in {
         "/opt/idempiere-doc-image"
         "/opt/idempiere-doc-dms-content"
         "/opt/idempiere-doc-dms-thumbnail"
+        # ZK root folder browser (ZK_ROOT_FOLDER_BROWSER SysConfig root)
+        "/opt/idempiere-folder-browser"
         # Allow opencode to write to its data directory
         "/home/idempiere/.local/share/opencode"
         "/home/idempiere/.opencode"

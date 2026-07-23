@@ -256,6 +256,11 @@ in {
     "d /opt/idempiere-doc-image 0750 ${idempiere.user} ${idempiere.group} -"
     "d /opt/idempiere-doc-dms-content 0750 ${idempiere.user} ${idempiere.group} -"
     "d /opt/idempiere-doc-dms-thumbnail 0750 ${idempiere.user} ${idempiere.group} -"
+    # ZK root folder browser directory — the default path Folder/FilePath
+    # (DisplayType=FilePath) pickers open at, instead of IDEMPIERE_HOME.
+    # See: ZK_ROOT_FOLDER_BROWSER SysConfig (idempiere-golive-deploy) and
+    # https://wiki.idempiere.org/en/Securing_iDempiere#ZK_ROOT_FOLDER_BROWSER
+    "d /opt/idempiere-folder-browser 0750 ${idempiere.user} ${idempiere.group} -"
     # OpenCode directories (for AI assistant integration) - contains API keys
     "d /home/idempiere/.local/share/opencode 0700 ${idempiere.user} ${idempiere.group} -"
     "d /home/idempiere/.opencode 0700 ${idempiere.user} ${idempiere.group} -"
